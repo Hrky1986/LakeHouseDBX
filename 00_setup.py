@@ -29,9 +29,10 @@ SOURCE_ROOT = "/databricks-datasets/retail-org"
 
 # Tables the pipeline will touch — used for availability check below
 EXPECTED_SOURCES = {
-    "customers":    f"{SOURCE_ROOT}/customers/customers.csv",
-    "products":     f"{SOURCE_ROOT}/products/products.csv",
-    "sales_orders": f"{SOURCE_ROOT}/sales_orders/",
+    "customers":        f"{SOURCE_ROOT}/customers/customers.csv",
+    "products":         f"{SOURCE_ROOT}/products/products.csv",
+    "sales_orders":     f"{SOURCE_ROOT}/sales_orders/",
+    "loyalty_segments": f"{SOURCE_ROOT}/loyalty_segments/loyalty_segment.csv"
 }
 
 print(f"Target catalog : {CATALOG}")
@@ -127,6 +128,13 @@ print("=" * 70)
 print("products.csv (first 500 chars) — note ';' separator")
 print("=" * 70)
 print(dbutils.fs.head(EXPECTED_SOURCES["products"], 500))
+
+# COMMAND ----------
+
+print("=" * 70)
+print("loyalty_segment.csv (first 500 chars) — note ';' separator")
+print("=" * 70)
+print(dbutils.fs.head(EXPECTED_SOURCES["loyalty_segments"], 500))
 
 # COMMAND ----------
 
