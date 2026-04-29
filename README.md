@@ -1,9 +1,9 @@
 # Senior Data Engineer — Take-Home Task
 
-**Submission by:** Krešimir Hrkač
-**Platform:** Databricks Free Edition (serverless, Unity Catalog)
-**Dataset:** `/databricks-datasets/retail-org` (US retail sales, customers, products)
-**Persona:** Commercial / Sales Lead
+**Submission by:** Krešimir Hrkač \
+**Platform:** Databricks Free Edition (serverless, Unity Catalog) \
+**Dataset:** `/databricks-datasets/retail-org` (US retail sales, customers, products) \
+**Persona:** Commercial / Sales Lead \
 
 ---
 
