@@ -13,8 +13,6 @@ An end-to-end medallion-architecture lakehouse on Databricks Free Edition. Raw r
 
 ## Architecture
 
-See [`docs/architecture.md`](docs/architecture.md) for the diagram and rationale.
-
 ```
 /databricks-datasets/retail-org
     │
