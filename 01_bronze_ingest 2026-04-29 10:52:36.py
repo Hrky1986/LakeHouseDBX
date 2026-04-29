@@ -1,8 +1,4 @@
 # Databricks notebook source
-# /// script
-# [tool.databricks.environment]
-# environment_version = "2"
-# ///
 # MAGIC %md
 # MAGIC # 01 · Bronze Ingest
 # MAGIC
@@ -47,17 +43,17 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import current_timestamp, input_file_name, lit
 import uuid
- 
+
 # CATALOG, SOURCE_ROOT, EXPECTED_SOURCES all come from 00_setup above
 BRONZE   = f"{CATALOG}.bronze"
 # spark.sparkContext.applicationId accesses the JVM directly and is not
 # supported on serverless compute. Use a UUID instead — unique per run,
 # no JVM access required.
 BATCH_ID = str(uuid.uuid4())
- 
+
 spark.sql(f"USE CATALOG {CATALOG}")
 spark.sql(f"USE SCHEMA bronze")
- 
+
 print(f"Writing to : {BRONZE}")
 print(f"Batch ID   : {BATCH_ID}")
 print(f"Source     : {SOURCE_ROOT}")
@@ -75,48 +71,41 @@ print(f"Source     : {SOURCE_ROOT}")
 
 # COMMAND ----------
 
-def land(df: DataFrame, table: str, comment: str, source_path: str) -> None:
+def land(df: DataFrame, table: str, comment: str) -> None:
     """Write a DataFrame to bronze as a Delta table with audit metadata.
- 
+
     Idempotent: overwrites the table and schema on every run.
     Re-running produces the same result as the first run.
- 
-    _metadata.file_path must be captured at read time (before the DataFrame
-    is passed here) because Unity Catalog does not expose hidden metadata
-    columns after the initial read. We therefore accept source_path explicitly
-    and store it as a literal — an honest representation of the source location
-    for static datasets like /databricks-datasets/.
- 
+
     Args:
-        df:          Source DataFrame (read as-is, no transformations).
-        table:       Target table name (unqualified — written to CATALOG.bronze).
-        comment:     Table comment for catalog discoverability.
-        source_path: Source file/folder path recorded in _source_file audit column.
+        df:       Source DataFrame (read as-is, no transformations).
+        table:    Target table name (unqualified — written to CATALOG.bronze).
+        comment:  Table comment for catalog discoverability.
     """
     fqn = f"{BRONZE}.{table}"
- 
+
     # Capture pre-run count so re-runs can confirm replacement, not append
     try:
         pre_count = spark.table(fqn).count()
         pre_label = f"{pre_count:>7,} rows (previous run)"
     except Exception:
         pre_label = "table did not exist yet"
- 
+
     enriched = (
         df
         .withColumn("_ingest_ts",   current_timestamp())
-        .withColumn("_source_file", lit(source_path))   # UC-safe: literal path, no JVM/metadata access
+        .withColumn("_source_file", input_file_name())
         .withColumn("_batch_id",    lit(BATCH_ID))
     )
- 
+
     (enriched.write
         .format("delta")
         .mode("overwrite")                   # idempotent: replaces on every run
         .option("overwriteSchema", "true")   # tolerates source schema changes
         .saveAsTable(fqn))
- 
+
     spark.sql(f"COMMENT ON TABLE {fqn} IS '{comment}'")
- 
+
     post_count = spark.table(fqn).count()
     print(f"  {fqn}")
     print(f"    before : {pre_label}")
@@ -138,11 +127,10 @@ customers_df = (spark.read
     .option("header", True)
     .option("inferSchema", True)
     .csv(EXPECTED_SOURCES["customers"]))
- 
+
 land(customers_df,
      table="customers_raw",
-     comment="Raw customer master data from retail-org sample. US-only.",
-     source_path=EXPECTED_SOURCES["customers"])
+     comment="Raw customer master data from retail-org sample. US-only.")
 
 # COMMAND ----------
 
@@ -160,11 +148,10 @@ products_df = (spark.read
     .option("sep", ";")
     .option("inferSchema", True)
     .csv(EXPECTED_SOURCES["products"]))
- 
+
 land(products_df,
      table="products_raw",
-     comment="Raw product master. CSV with '';'' separator.",
-     source_path=EXPECTED_SOURCES["products"])
+     comment="Raw product master. CSV with ';' separator.")
 
 # COMMAND ----------
 
@@ -181,11 +168,10 @@ land(products_df,
 # COMMAND ----------
 
 sales_orders_df = spark.read.json(EXPECTED_SOURCES["sales_orders"])
- 
+
 land(sales_orders_df,
      table="sales_orders_raw",
-     comment="Raw sales orders. JSON, nested ordered_products array. Unix-ts order_datetime.",
-     source_path=EXPECTED_SOURCES["sales_orders"])
+     comment="Raw sales orders. JSON, nested ordered_products array. Unix-ts order_datetime.")
 
 # COMMAND ----------
 
@@ -242,3 +228,4 @@ display(spark.table(f"{BRONZE}.sales_orders_raw").limit(5))
 # MAGIC A re-run shows identical counts — the table was replaced, not appended to.
 # MAGIC
 # MAGIC Next: **`02_silver_transform`** — cleaning, explode, deduplicate, DQ + quarantine.
+
