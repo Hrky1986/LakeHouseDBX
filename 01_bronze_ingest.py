@@ -169,7 +169,29 @@ land(products_df,
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 6. Ingest: sales orders
+# MAGIC ## 6. Ingest: loyalty_segment
+# MAGIC
+# MAGIC - Source: `EXPECTED_SOURCES["loyalty_segments"]` — path from `00_setup`
+# MAGIC - Format: CSV
+# MAGIC - **Separator is `;`**, not the default `,`. Easy to miss — flagged explicitly here.
+
+# COMMAND ----------
+
+loyalty_segments_df = (spark.read
+    .option("header", True)
+    .option("sep", ",")
+    .option("inferSchema", True)
+    .csv(EXPECTED_SOURCES["loyalty_segments"]))
+ 
+land(loyalty_segments_df,
+     table="loyalty_segments_raw",
+     comment="Raw loyalty segments master. CSV with '','' separator.",
+     source_path=EXPECTED_SOURCES["loyalty_segments"])
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 7. Ingest: sales orders
 # MAGIC
 # MAGIC - Source: `EXPECTED_SOURCES["sales_orders"]` — path from `00_setup`
 # MAGIC - Format: JSON, one file per batch, nested structure
@@ -190,7 +212,7 @@ land(sales_orders_df,
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 7. Verify bronze layer
+# MAGIC ## 8. Verify bronze layer
 
 # COMMAND ----------
 
@@ -199,7 +221,7 @@ display(spark.sql(f"SHOW TABLES IN {BRONZE}"))
 # COMMAND ----------
 
 # Row counts and audit-column presence — quick sanity check
-for table in ["customers_raw", "products_raw", "sales_orders_raw"]:
+for table in ["customers_raw", "products_raw", "sales_orders_raw", "loyalty_segments_raw"]:
     fqn = f"{BRONZE}.{table}"
     row_count  = spark.table(fqn).count()
     audit_cols = [c for c in spark.table(fqn).columns if c.startswith("_")]
@@ -211,7 +233,7 @@ for table in ["customers_raw", "products_raw", "sales_orders_raw"]:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 8. Sample each bronze table
+# MAGIC ## 9. Sample each bronze table
 
 # COMMAND ----------
 
@@ -223,20 +245,25 @@ display(spark.table(f"{BRONZE}.products_raw").limit(5))
 
 # COMMAND ----------
 
+display(spark.table(f"{BRONZE}.loyalty_segments_raw").limit(5))
+
+# COMMAND ----------
+
 display(spark.table(f"{BRONZE}.sales_orders_raw").limit(5))
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 9. Bronze layer complete
+# MAGIC ## 10. Bronze layer complete
 # MAGIC
 # MAGIC Three Delta tables written with full audit metadata:
 # MAGIC
-# MAGIC | Table                                    | Source                      | Notes                         |
-# MAGIC |------------------------------------------|-----------------------------|-------------------------------|
-# MAGIC | `lakehouse_demo.bronze.customers_raw`    | `customers/customers.csv`   | CSV, header                   |
-# MAGIC | `lakehouse_demo.bronze.products_raw`     | `products/products.csv`     | CSV, `;` separator            |
-# MAGIC | `lakehouse_demo.bronze.sales_orders_raw` | `sales_orders/*.json`       | JSON, nested ordered_products |
+# MAGIC | Table                                        | Source                                | Notes                         |
+# MAGIC |----------------------------------------------|---------------------------------------|-------------------------------|
+# MAGIC | `lakehouse_demo.bronze.customers_raw`        | `customers/customers.csv`             | CSV, header                   |
+# MAGIC | `lakehouse_demo.bronze.products_raw`         | `products/products.csv`               | CSV, `;` separator            |
+# MAGIC | `lakehouse_demo.bronze.loyalty_segments_raw` | `loyalty_segments/loyalty_segment.csv`| CSV, `,` separator            |
+# MAGIC | `lakehouse_demo.bronze.sales_orders_raw`     | `sales_orders/*.json`                 | JSON, nested ordered_products |
 # MAGIC
 # MAGIC **Idempotency confirmed:** each `land()` call prints a before/after row count.
 # MAGIC A re-run shows identical counts — the table was replaced, not appended to.
