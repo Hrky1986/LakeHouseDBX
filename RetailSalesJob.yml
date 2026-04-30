@@ -1,0 +1,24 @@
+resources:
+  jobs:
+    Retail_ELT_job:
+      name: Retail ELT job
+      tasks:
+        - task_key: Data_ingestion
+          notebook_task:
+            notebook_path: /Workspace/Users/kresimir.hrkac.hr@gmail.com/LakeHouseDBX/01_bronze_ingest
+            source: WORKSPACE
+        - task_key: Data_transformation
+          depends_on:
+            - task_key: Data_ingestion
+          notebook_task:
+            notebook_path: /Workspace/Users/kresimir.hrkac.hr@gmail.com/LakeHouseDBX/02_silver_transform
+            source: WORKSPACE
+        - task_key: Data_modelling_and_aggregation
+          depends_on:
+            - task_key: Data_transformation
+          notebook_task:
+            notebook_path: /Workspace/Users/kresimir.hrkac.hr@gmail.com/LakeHouseDBX/03_gold_build
+            source: WORKSPACE
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
