@@ -1,0 +1,712 @@
+{
+  "datasets": [
+    {
+      "name": "11111111",
+      "displayName": "ds_kpi",
+      "queryLines": [
+        "WITH filtered AS (\n",
+        "  SELECT *\n",
+        "  FROM lakehouse_demo.gold.agg_sales_monthly\n",
+        "  WHERE (size(:param_year)  = 0 OR array_contains(:param_year, year))\n",
+        "    AND (size(:param_month) = 0 OR array_contains(:param_month, month))\n",
+        "),\n",
+        "monthly AS (\n",
+        "  SELECT year_month,\n",
+        "         SUM(total_revenue)                              AS revenue,\n",
+        "         SUM(orders)                                     AS orders,\n",
+        "         SUM(unique_customers)                           AS unique_customers,\n",
+        "         SUM(total_revenue) / NULLIF(SUM(orders), 0)     AS aov\n",
+        "  FROM filtered\n",
+        "  GROUP BY year_month\n",
+        ")\n",
+        "SELECT\n",
+        "  ROUND(SUM(revenue), 2)                                                     AS total_revenue,\n",
+        "  SUM(orders)                                                                AS total_orders,\n",
+        "  ROUND(SUM(revenue) / NULLIF(SUM(orders), 0), 2)                            AS aov,\n",
+        "  SUM(unique_customers)                                                      AS unique_customers\n",
+        "FROM monthly\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Year",
+          "keyword": "param_year",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        },
+        {
+          "displayName": "Month",
+          "keyword": "param_month",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "22222222",
+      "displayName": "ds_trend",
+      "queryLines": [
+        "SELECT\n",
+        "  year_month,\n",
+        "  loyalty_segment,\n",
+        "  ROUND(SUM(total_revenue), 2)                                               AS revenue\n",
+        "FROM lakehouse_demo.gold.agg_sales_monthly\n",
+        "WHERE loyalty_segment IS NOT NULL\n",
+        "  AND (size(:param_year)  = 0 OR array_contains(:param_year, year))\n",
+        "  AND (size(:param_month) = 0 OR array_contains(:param_month, month))\n",
+        "GROUP BY year_month, loyalty_segment\n",
+        "ORDER BY year_month, loyalty_segment\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Year",
+          "keyword": "param_year",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        },
+        {
+          "displayName": "Month",
+          "keyword": "param_month",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "33333333",
+      "displayName": "ds_heatmap",
+      "queryLines": [
+        "SELECT\n",
+        "  product_category,\n",
+        "  state,\n",
+        "  ROUND(SUM(total_revenue), 2)                                               AS revenue\n",
+        "FROM lakehouse_demo.gold.agg_sales_monthly\n",
+        "WHERE product_category IS NOT NULL\n",
+        "  AND state IS NOT NULL\n",
+        "  AND (size(:param_year)  = 0 OR array_contains(:param_year, year))\n",
+        "  AND (size(:param_month) = 0 OR array_contains(:param_month, month))\n",
+        "GROUP BY product_category, state\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Year",
+          "keyword": "param_year",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        },
+        {
+          "displayName": "Month",
+          "keyword": "param_month",
+          "dataType": "INTEGER",
+          "complexType": "MULTI",
+          "defaultSelection": {
+            "values": {
+              "dataType": "INTEGER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "44444444",
+      "displayName": "ds_year_param",
+      "queryLines": [
+        "SELECT DISTINCT year\n",
+        "FROM lakehouse_demo.gold.agg_sales_monthly\n",
+        "WHERE year IS NOT NULL\n",
+        "ORDER BY year\n"
+      ]
+    },
+    {
+      "name": "55555555",
+      "displayName": "ds_month_param",
+      "queryLines": [
+        "SELECT DISTINCT month\n",
+        "FROM lakehouse_demo.gold.agg_sales_monthly\n",
+        "WHERE month IS NOT NULL\n",
+        "ORDER BY month\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "page1",
+      "displayName": "Sales Lead — Monthly",
+      "layout": [
+        {
+          "widget": {
+            "name": "w0000001",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Commercial Sales Lead — Monthly Performance\n",
+                "\n",
+                "Use the **Year** and **Month** filters to slice all visualisations on this page.\n",
+                "\n",
+                "- **KPIs** show totals after filters: revenue, orders, AOV, unique customers.\n",
+                "- **Revenue trend by loyalty segment** reveals whether growth is broad-based or concentrated in a single tier.\n",
+                "- **Category × State heatmap** spots geographic concentration: e.g. is *Apparel* revenue dominated by a handful of states, or evenly distributed?"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000002",
+            "queries": [
+              {
+                "name": "dashboards/main/datasets/44444444",
+                "query": {
+                  "datasetName": "44444444",
+                  "fields": [
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/11111111_param_year",
+                "query": {
+                  "datasetName": "11111111",
+                  "parameters": [
+                    {
+                      "name": "param_year",
+                      "keyword": "param_year"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/22222222_param_year",
+                "query": {
+                  "datasetName": "22222222",
+                  "parameters": [
+                    {
+                      "name": "param_year",
+                      "keyword": "param_year"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/33333333_param_year",
+                "query": {
+                  "datasetName": "33333333",
+                  "parameters": [
+                    {
+                      "name": "param_year",
+                      "keyword": "param_year"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "year",
+                    "displayName": "year",
+                    "queryName": "dashboards/main/datasets/44444444"
+                  },
+                  {
+                    "parameterName": "param_year",
+                    "queryName": "dashboards/main/datasets/11111111_param_year"
+                  },
+                  {
+                    "parameterName": "param_year",
+                    "queryName": "dashboards/main/datasets/22222222_param_year"
+                  },
+                  {
+                    "parameterName": "param_year",
+                    "queryName": "dashboards/main/datasets/33333333_param_year"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Year"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000003",
+            "queries": [
+              {
+                "name": "dashboards/main/datasets/55555555",
+                "query": {
+                  "datasetName": "55555555",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/11111111_param_month",
+                "query": {
+                  "datasetName": "11111111",
+                  "parameters": [
+                    {
+                      "name": "param_month",
+                      "keyword": "param_month"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/22222222_param_month",
+                "query": {
+                  "datasetName": "22222222",
+                  "parameters": [
+                    {
+                      "name": "param_month",
+                      "keyword": "param_month"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/main/datasets/33333333_param_month",
+                "query": {
+                  "datasetName": "33333333",
+                  "parameters": [
+                    {
+                      "name": "param_month",
+                      "keyword": "param_month"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "month",
+                    "displayName": "month",
+                    "queryName": "dashboards/main/datasets/55555555"
+                  },
+                  {
+                    "parameterName": "param_month",
+                    "queryName": "dashboards/main/datasets/11111111_param_month"
+                  },
+                  {
+                    "parameterName": "param_month",
+                    "queryName": "dashboards/main/datasets/22222222_param_month"
+                  },
+                  {
+                    "parameterName": "param_month",
+                    "queryName": "dashboards/main/datasets/33333333_param_month"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Month"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000004",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "11111111",
+                  "fields": [
+                    {
+                      "name": "total_revenue",
+                      "expression": "`total_revenue`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_revenue",
+                  "displayName": "Total Revenue",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000005",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "11111111",
+                  "fields": [
+                    {
+                      "name": "total_orders",
+                      "expression": "`total_orders`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_orders",
+                  "displayName": "Total Orders",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Orders"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000006",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "11111111",
+                  "fields": [
+                    {
+                      "name": "aov",
+                      "expression": "`aov`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "aov",
+                  "displayName": "Average Order Value",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average Order Value"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000007",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "11111111",
+                  "fields": [
+                    {
+                      "name": "unique_customers",
+                      "expression": "`unique_customers`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unique_customers",
+                  "displayName": "Unique Customers",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Customers"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000008",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "22222222",
+                  "fields": [
+                    {
+                      "name": "year_month",
+                      "expression": "`year_month`"
+                    },
+                    {
+                      "name": "loyalty_segment",
+                      "expression": "`loyalty_segment`"
+                    },
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "year_month",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Month"
+                },
+                "y": {
+                  "fieldName": "sum(revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Revenue"
+                },
+                "color": {
+                  "fieldName": "loyalty_segment",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Loyalty Segment"
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "title": "Monthly Revenue by Loyalty Segment",
+                "showTitle": true,
+                "showDescription": true,
+                "description": "Stacking by loyalty tier shows whether revenue growth is broad-based or concentrated. Watch for tiers that flatten or decline — the most loyal customers are usually the most predictive of next quarter's pipeline."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "w0000009",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "33333333",
+                  "fields": [
+                    {
+                      "name": "sum(revenue)",
+                      "expression": "SUM(`revenue`)"
+                    },
+                    {
+                      "name": "state",
+                      "expression": "`state`"
+                    },
+                    {
+                      "name": "product_category",
+                      "expression": "`product_category`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Revenue Heatmap: Category × State",
+                "showTitle": true,
+                "showDescription": true,
+                "description": "Darker cells = more revenue. Use this to spot where each product category concentrates — over-concentration in one or two states is a risk signal; even distribution suggests the category is broadly viable."
+              },
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "state",
+                  "displayName": "State",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "product_category",
+                  "displayName": "Product Category",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
